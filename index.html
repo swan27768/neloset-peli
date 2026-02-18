@@ -201,222 +201,222 @@
     </div>
 
     <script>
-      function testPost() {
-        const debugDiv = document.getElementById("debugOutput");
-        debugDiv.textContent = "Lähetetään...";
+            function testPost() {
+              const debugDiv = document.getElementById("debugOutput");
+              debugDiv.textContent = "Lähetetään...";
 
-        fetch(
-          "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name: "TESTI",
-              tries: 1,
-              gameId: "debug",
-              timeSeconds: 10,
-              score: 5,
-            }),
-          },
-        )
-          .then((res) => {
-            debugDiv.textContent = "Status: " + res.status;
-            return res.text();
-          })
-          .then((text) => {
-            debugDiv.textContent += " | Vastaus: " + text;
-          })
-          .catch((err) => {
-            debugDiv.textContent = "Virhe: " + err;
-            console.error(err);
-          });
-      }
 
-      const PUZZLE = {
-        groups: [
-          {
-            name: "ELÄIMET",
-            color: "#f97316",
-            words: ["kissa", "koira", "lehmä", "hevonen"],
-          },
-          {
-            name: "VÄRIT",
-            color: "#3b82f6",
-            words: ["punainen", "sininen", "vihreä", "keltainen"],
-          },
-          {
-            name: "SÄÄ",
-            color: "#a855f7",
-            words: ["sade", "lumi", "tuuli", "pouta"],
-          },
-          {
-            name: "KOULU",
-            color: "#22c55e",
-            words: ["kynä", "vihko", "reppu", "kumi"],
-          },
-        ],
-      };
+              fetch("https://script.google.com/macros/s/AKfycbyQa3tcW6WRnJrZIDtOgwSBwfFddVAf0dtGN-kewCDwBY3waS56TxeLDOFkazNlK9lN/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        alert("Tulos lähetetty!");
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Virhe lähetyksessä.");
+      });
 
-      let tiles = [];
-      let selected = new Set();
-      let solved = new Set();
-      let tries = 0;
-      let hints = 3;
 
-      function shuffle(a) {
-        for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-        }
-        return a;
-      }
 
-      function buildTiles() {
-        let arr = [];
-        PUZZLE.groups.forEach((g, i) => {
-          g.words.forEach((w) => {
-            arr.push({ word: w, group: i, state: "normal" });
-          });
-        });
-        return shuffle(arr);
-      }
+                .then((res) => {
+                  debugDiv.textContent = "Status: " + res.status;
+                  return res.text();
+                })
+                .then((text) => {
+                  debugDiv.textContent += " | Vastaus: " + text;
+                })
+                .catch((err) => {
+                  debugDiv.textContent = "Virhe: " + err;
+                  console.error(err);
+                });
+            }
 
-      function render() {
-        document.getElementById("tries").textContent = tries;
-        document.getElementById("hints").textContent = hints;
+            const PUZZLE = {
+              groups: [
+                {
+                  name: "ELÄIMET",
+                  color: "#f97316",
+                  words: ["kissa", "koira", "lehmä", "hevonen"],
+                },
+                {
+                  name: "VÄRIT",
+                  color: "#3b82f6",
+                  words: ["punainen", "sininen", "vihreä", "keltainen"],
+                },
+                {
+                  name: "SÄÄ",
+                  color: "#a855f7",
+                  words: ["sade", "lumi", "tuuli", "pouta"],
+                },
+                {
+                  name: "KOULU",
+                  color: "#22c55e",
+                  words: ["kynä", "vihko", "reppu", "kumi"],
+                },
+              ],
+            };
 
-        const grid = document.getElementById("grid");
-        grid.innerHTML = "";
-        tiles.forEach((t, i) => {
-          const d = document.createElement("div");
-          d.className = "tile";
-          if (selected.has(i)) d.classList.add("selected");
-          if (t.state === "revealed") d.classList.add("revealed");
-          if (t.state === "locked") d.classList.add("locked");
-          d.textContent = t.word;
-          d.onclick = () => {
-            if (t.state !== "normal") return;
-            if (selected.has(i)) selected.delete(i);
-            else if (selected.size < 4) selected.add(i);
-            render();
-          };
-          grid.appendChild(d);
-        });
+            let tiles = [];
+            let selected = new Set();
+            let solved = new Set();
+            let tries = 0;
+            let hints = 3;
 
-        const solvedArea = document.getElementById("solvedArea");
-        solvedArea.innerHTML = "";
-        solved.forEach((i) => {
-          const box = document.createElement("div");
-          box.className = "category-box";
-          box.style.background = PUZZLE.groups[i].color;
-          box.textContent =
-            PUZZLE.groups[i].name + " – " + PUZZLE.groups[i].words.join(", ");
-          solvedArea.appendChild(box);
-        });
-      }
+            function shuffle(a) {
+              for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+              }
+              return a;
+            }
 
-      function checkSelection() {
-        if (selected.size !== 4) return;
-        tries++;
-        const idx = [...selected];
-        const g = tiles[idx[0]].group;
-        if (idx.every((i) => tiles[i].group === g)) {
-          solved.add(g);
-          idx.forEach((i) => (tiles[i].state = "revealed"));
-          document.getElementById("status").textContent = "Oikein!";
-        } else {
-          document.getElementById("status").textContent = "Väärä ryhmä.";
-        }
-        selected.clear();
-        render();
-      }
+            function buildTiles() {
+              let arr = [];
+              PUZZLE.groups.forEach((g, i) => {
+                g.words.forEach((w) => {
+                  arr.push({ word: w, group: i, state: "normal" });
+                });
+              });
+              return shuffle(arr);
+            }
 
-      function giveHint() {
-        if (hints <= 0) return;
-        hints--;
-        tries++;
-        const remaining = PUZZLE.groups
-          .map((_, i) => i)
-          .filter((i) => !solved.has(i));
-        if (!remaining.length) return;
-        const gi = remaining[Math.floor(Math.random() * remaining.length)];
-        tiles
-          .filter((t) => t.group === gi && t.state === "normal")
-          .slice(0, 2)
-          .forEach((t) => (t.state = "locked"));
-        render();
-      }
+            function render() {
+              document.getElementById("tries").textContent = tries;
+              document.getElementById("hints").textContent = hints;
 
-      function saveResult() {
-        const name = document.getElementById("playerName").value.trim();
-        if (!name) {
-          alert("Syötä nimi");
-          return;
-        }
+              const grid = document.getElementById("grid");
+              grid.innerHTML = "";
+              tiles.forEach((t, i) => {
+                const d = document.createElement("div");
+                d.className = "tile";
+                if (selected.has(i)) d.classList.add("selected");
+                if (t.state === "revealed") d.classList.add("revealed");
+                if (t.state === "locked") d.classList.add("locked");
+                d.textContent = t.word;
+                d.onclick = () => {
+                  if (t.state !== "normal") return;
+                  if (selected.has(i)) selected.delete(i);
+                  else if (selected.size < 4) selected.add(i);
+                  render();
+                };
+                grid.appendChild(d);
+              });
 
-        const payload = {
-          name: name,
-          tries: tries,
-          gameId: "default",
-          timeSeconds:
-            typeof timeLimit !== "undefined" ? timeLimit - timeLeft : 0,
-          score:
-            typeof timeLimit !== "undefined"
-              ? tries + (timeLimit - timeLeft) / 10
-              : tries,
-        };
+              const solvedArea = document.getElementById("solvedArea");
+              solvedArea.innerHTML = "";
+              solved.forEach((i) => {
+                const box = document.createElement("div");
+                box.className = "category-box";
+                box.style.background = PUZZLE.groups[i].color;
+                box.textContent =
+                  PUZZLE.groups[i].name + " – " + PUZZLE.groups[i].words.join(", ");
+                solvedArea.appendChild(box);
+              });
+            }
 
-        fetch(
-          "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          },
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            alert("Tulos lähetetty onnistuneesti!");
-          })
-          .catch((err) => {
-            console.error(err);
-            alert("Virhe lähetyksessä.");
-          });
-      }
+            function checkSelection() {
+              if (selected.size !== 4) return;
+              tries++;
+              const idx = [...selected];
+              const g = tiles[idx[0]].group;
+              if (idx.every((i) => tiles[i].group === g)) {
+                solved.add(g);
+                idx.forEach((i) => (tiles[i].state = "revealed"));
+                document.getElementById("status").textContent = "Oikein!";
+              } else {
+                document.getElementById("status").textContent = "Väärä ryhmä.";
+              }
+              selected.clear();
+              render();
+            }
 
-      function showResults() {
-        const results = JSON.parse(
-          localStorage.getItem("nelosetResults") || "[]",
-        );
-        let html =
-          "<table><tr><th>Nimi</th><th>Yritykset</th><th>Aika</th></tr>";
-        results.forEach((r) => {
-          html += `<tr><td>${r.name}</td><td>${r.tries}</td><td>${r.date}</td></tr>`;
-        });
-        html += "</table>";
-        document.getElementById("resultsArea").innerHTML = html;
-      }
+            function giveHint() {
+              if (hints <= 0) return;
+              hints--;
+              tries++;
+              const remaining = PUZZLE.groups
+                .map((_, i) => i)
+                .filter((i) => !solved.has(i));
+              if (!remaining.length) return;
+              const gi = remaining[Math.floor(Math.random() * remaining.length)];
+              tiles
+                .filter((t) => t.group === gi && t.state === "normal")
+                .slice(0, 2)
+                .forEach((t) => (t.state = "locked"));
+              render();
+            }
 
-      function clearResults() {
-        localStorage.removeItem("nelosetResults");
-        document.getElementById("resultsArea").innerHTML = "";
-      }
+            function saveResult() {
+              const name = document.getElementById("playerName").value.trim();
+              if (!name) {
+                alert("Syötä nimi");
+                return;
+              }
 
-      function resetGame() {
-        tiles = buildTiles();
-        selected.clear();
-        solved.clear();
-        tries = 0;
-        hints = 3;
-        document.getElementById("status").textContent = "";
-        render();
-      }
+              const payload = {
+                name: name,
+                tries: tries,
+                gameId: "default",
+                timeSeconds:
+                  typeof timeLimit !== "undefined" ? timeLimit - timeLeft : 0,
+                score:
+                  typeof timeLimit !== "undefined"
+                    ? tries + (timeLimit - timeLeft) / 10
+                    : tries,
+              };
 
-      resetGame();
+              fetch(
+                "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(payload),
+                },
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  alert("Tulos lähetetty onnistuneesti!");
+                })
+                .catch((err) => {
+                  console.error(err);
+                  alert("Virhe lähetyksessä.");
+                });
+            }
+
+            function showResults() {
+              const results = JSON.parse(
+                localStorage.getItem("nelosetResults") || "[]",
+              );
+              let html =
+                "<table><tr><th>Nimi</th><th>Yritykset</th><th>Aika</th></tr>";
+              results.forEach((r) => {
+                html += `<tr><td>${r.name}</td><td>${r.tries}</td><td>${r.date}</td></tr>`;
+              });
+              html += "</table>";
+              document.getElementById("resultsArea").innerHTML = html;
+            }
+
+            function clearResults() {
+              localStorage.removeItem("nelosetResults");
+              document.getElementById("resultsArea").innerHTML = "";
+            }
+
+            function resetGame() {
+              tiles = buildTiles();
+              selected.clear();
+              solved.clear();
+              tries = 0;
+              hints = 3;
+              document.getElementById("status").textContent = "";
+              render();
+            }
+
+            resetGame();
     </script>
   </body>
 </html>
