@@ -313,25 +313,40 @@
 
       function saveResult() {
         const name = document.getElementById("playerName").value.trim();
-        if (!name) return alert("Syötä nimi");
+        if (!name) {
+          alert("Syötä nimi");
+          return;
+        }
 
         const payload = {
           name: name,
           tries: tries,
           gameId: "default",
+          timeSeconds:
+            typeof timeLimit !== "undefined" ? timeLimit - timeLeft : 0,
+          score:
+            typeof timeLimit !== "undefined"
+              ? tries + (timeLimit - timeLeft) / 10
+              : tries,
         };
 
-        fetch("TÄHÄN_WEBAPP_URL", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        })
+        fetch(
+          "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          },
+        )
           .then((res) => res.json())
           .then((data) => {
             alert("Tulos lähetetty onnistuneesti!");
           })
           .catch((err) => {
-            alert("Virhe lähetyksessä.");
             console.error(err);
+            alert("Virhe lähetyksessä.");
           });
       }
 
