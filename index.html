@@ -235,8 +235,16 @@
         const idx = [...selected];
         const group = tiles[idx[0]].group;
 
-        if (idx.every((i) => tiles[i].group === group)) {
+        const correct = idx.every((i) => tiles[i].group === group);
+
+        if (correct) {
           solved.add(group);
+
+          if (solved.size === PUZZLE.groups.length) {
+            alert("Peli ratkaistu!");
+          }
+        } else {
+          alert("Väärä ryhmä.");
         }
 
         selected.clear();
