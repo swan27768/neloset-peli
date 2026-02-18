@@ -29,39 +29,11 @@
         padding: 20px;
       }
 
-      h1 {
-        margin: 0 0 10px 0;
-      }
-
       .stats {
         display: flex;
         gap: 20px;
         margin-bottom: 15px;
         color: var(--muted);
-      }
-
-      .solved-area {
-        display: grid;
-        gap: 10px;
-        margin-bottom: 15px;
-      }
-
-      .category-box {
-        padding: 15px;
-        border-radius: 12px;
-        font-weight: bold;
-        animation: pop 0.3s ease;
-      }
-
-      @keyframes pop {
-        0% {
-          transform: scale(0.8);
-          opacity: 0;
-        }
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
       }
 
       .grid {
@@ -76,22 +48,15 @@
         text-align: center;
         border-radius: 12px;
         cursor: pointer;
-        transition: 0.15s;
         font-weight: 600;
-      }
-
-      .tile:hover {
-        transform: translateY(-2px);
       }
 
       .tile.selected {
         background: var(--accent);
       }
-
       .tile.revealed {
         background: var(--good);
       }
-
       .tile.locked {
         background: #334155;
         opacity: 0.7;
@@ -101,7 +66,6 @@
         margin-top: 15px;
         display: flex;
         gap: 10px;
-        flex-wrap: wrap;
       }
 
       button {
@@ -125,23 +89,11 @@
         color: white;
       }
 
-      .status {
-        margin-top: 10px;
-        color: var(--muted);
-        min-height: 20px;
-      }
-
       .panel {
         margin-top: 30px;
         background: var(--card);
         padding: 15px;
         border-radius: 12px;
-      }
-
-      input {
-        padding: 6px;
-        margin: 4px 0;
-        width: 100%;
       }
 
       table {
@@ -154,10 +106,10 @@
       th {
         border-bottom: 1px solid #334155;
         padding: 6px;
-        text-align: left;
       }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <h1>Neloset</h1>
@@ -167,8 +119,6 @@
         <div>Vihjeet: <span id="hints">3</span></div>
       </div>
 
-      <div class="solved-area" id="solvedArea"></div>
-
       <div class="grid" id="grid"></div>
 
       <div class="controls">
@@ -177,267 +127,150 @@
         <button class="bad" onclick="resetGame()">Uusi peli</button>
       </div>
 
-      <div class="status" id="status"></div>
-
-      <!-- OPPILAAN TULOS -->
       <div class="panel">
         <h2>Tallenna tulos</h2>
         <input id="playerName" placeholder="Oppilaan nimi" />
         <button class="good" onclick="saveResult()">Tallenna tulos</button>
       </div>
 
-      <!-- OPETTAJAN NÄKYMÄ -->
       <div class="panel">
-        <h2>Opettajan tulosnäkymä</h2>
-        <button onclick="showResults()">Näytä tulokset</button>
-        <button onclick="clearResults()">Tyhjennä tulokset</button>
+        <h2>Leaderboard (TOP 10)</h2>
         <div id="resultsArea"></div>
-      </div>
-      <div class="panel">
-        <h2>DEBUG</h2>
-        <button onclick="testPost()">Testaa POST suoraan</button>
-        <div id="debugOutput"></div>
       </div>
     </div>
 
     <script>
-                  function testPost() {
-                    const debugDiv = document.getElementById("debugOutput");
-                    debugDiv.textContent = "Lähetetään...";
+      const WEBAPP_URL =
+        "https://script.google.com/macros/s/AKfycbxl8JEwDVVx-feF4_wEK9W5ZhbbNMzVv5bwXu7cDFZzPbhpiwMVKp8h686fele5c2ZYQw/exec";
 
+      const PUZZLE = {
+        groups: [
+          { name: "ELÄIMET", words: ["kissa", "koira", "lehmä", "hevonen"] },
+          {
+            name: "VÄRIT",
+            words: ["punainen", "sininen", "vihreä", "keltainen"],
+          },
+          { name: "SÄÄ", words: ["sade", "lumi", "tuuli", "pouta"] },
+          { name: "KOULU", words: ["kynä", "vihko", "reppu", "kumi"] },
+        ],
+      };
 
-                    fetch("https://script.google.com/macros/s/AKfycbyQa3tcW6WRnJrZIDtOgwSBwfFddVAf0dtGN-kewCDwBY3waS56TxeLDOFkazNlK9lN/exec", {
-              method: "POST",
-              mode: "no-cors",
-              body: JSON.stringify(payload)
-            })
-            .then(() => {
-              alert("Tulos lähetetty!");
-            })
-            .catch(err => {
-              console.error(err);
-              alert("Virhe lähetyksessä.");
-            });
+      let tiles = [];
+      let selected = new Set();
+      let solved = new Set();
+      let tries = 0;
+      let hints = 3;
 
+      function shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
 
+      function buildTiles() {
+        let arr = [];
+        PUZZLE.groups.forEach((g, i) => {
+          g.words.forEach((w) => {
+            arr.push({ word: w, group: i, state: "normal" });
+          });
+        });
+        return shuffle(arr);
+      }
 
-                      .then((res) => {
-                        debugDiv.textContent = "Status: " + res.status;
-                        return res.text();
-                      })
-                      .then((text) => {
-                        debugDiv.textContent += " | Vastaus: " + text;
-                      })
-                      .catch((err) => {
-                        debugDiv.textContent = "Virhe: " + err;
-                        console.error(err);
-                      });
-                  }
+      function render() {
+        document.getElementById("tries").textContent = tries;
+        document.getElementById("hints").textContent = hints;
 
-                  const PUZZLE = {
-                    groups: [
-                      {
-                        name: "ELÄIMET",
-                        color: "#f97316",
-                        words: ["kissa", "koira", "lehmä", "hevonen"],
-                      },
-                      {
-                        name: "VÄRIT",
-                        color: "#3b82f6",
-                        words: ["punainen", "sininen", "vihreä", "keltainen"],
-                      },
-                      {
-                        name: "SÄÄ",
-                        color: "#a855f7",
-                        words: ["sade", "lumi", "tuuli", "pouta"],
-                      },
-                      {
-                        name: "KOULU",
-                        color: "#22c55e",
-                        words: ["kynä", "vihko", "reppu", "kumi"],
-                      },
-                    ],
-                  };
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        tiles.forEach((t, i) => {
+          const d = document.createElement("div");
+          d.className = "tile";
+          if (selected.has(i)) d.classList.add("selected");
+          if (t.state === "revealed") d.classList.add("revealed");
+          d.textContent = t.word;
+          d.onclick = () => {
+            if (t.state !== "normal") return;
+            if (selected.has(i)) selected.delete(i);
+            else if (selected.size < 4) selected.add(i);
+            render();
+          };
+          grid.appendChild(d);
+        });
+      }
 
-                  let tiles = [];
-                  let selected = new Set();
-                  let solved = new Set();
-                  let tries = 0;
-                  let hints = 3;
+      function checkSelection() {
+        if (selected.size !== 4) return;
+        tries++;
+        const idx = [...selected];
+        const g = tiles[idx[0]].group;
+        if (idx.every((i) => tiles[i].group === g)) {
+          idx.forEach((i) => (tiles[i].state = "revealed"));
+        }
+        selected.clear();
+        render();
+      }
 
-                  function shuffle(a) {
-                    for (let i = a.length - 1; i > 0; i--) {
-                      const j = Math.floor(Math.random() * (i + 1));
-                      [a[i], a[j]] = [a[j], a[i]];
-                    }
-                    return a;
-                  }
+      function giveHint() {
+        if (hints <= 0) return;
+        hints--;
+        tries++;
+        render();
+      }
 
-                  function buildTiles() {
-                    let arr = [];
-                    PUZZLE.groups.forEach((g, i) => {
-                      g.words.forEach((w) => {
-                        arr.push({ word: w, group: i, state: "normal" });
-                      });
-                    });
-                    return shuffle(arr);
-                  }
-
-                  function render() {
-                    document.getElementById("tries").textContent = tries;
-                    document.getElementById("hints").textContent = hints;
-
-                    const grid = document.getElementById("grid");
-                    grid.innerHTML = "";
-                    tiles.forEach((t, i) => {
-                      const d = document.createElement("div");
-                      d.className = "tile";
-                      if (selected.has(i)) d.classList.add("selected");
-                      if (t.state === "revealed") d.classList.add("revealed");
-                      if (t.state === "locked") d.classList.add("locked");
-                      d.textContent = t.word;
-                      d.onclick = () => {
-                        if (t.state !== "normal") return;
-                        if (selected.has(i)) selected.delete(i);
-                        else if (selected.size < 4) selected.add(i);
-                        render();
-                      };
-                      grid.appendChild(d);
-                    });
-
-                    const solvedArea = document.getElementById("solvedArea");
-                    solvedArea.innerHTML = "";
-                    solved.forEach((i) => {
-                      const box = document.createElement("div");
-                      box.className = "category-box";
-                      box.style.background = PUZZLE.groups[i].color;
-                      box.textContent =
-                        PUZZLE.groups[i].name + " – " + PUZZLE.groups[i].words.join(", ");
-                      solvedArea.appendChild(box);
-                    });
-                  }
-
-                  function checkSelection() {
-                    if (selected.size !== 4) return;
-                    tries++;
-                    const idx = [...selected];
-                    const g = tiles[idx[0]].group;
-                    if (idx.every((i) => tiles[i].group === g)) {
-                      solved.add(g);
-                      idx.forEach((i) => (tiles[i].state = "revealed"));
-                      document.getElementById("status").textContent = "Oikein!";
-                    } else {
-                      document.getElementById("status").textContent = "Väärä ryhmä.";
-                    }
-                    selected.clear();
-                    render();
-                  }
-
-                  function giveHint() {
-                    if (hints <= 0) return;
-                    hints--;
-                    tries++;
-                    const remaining = PUZZLE.groups
-                      .map((_, i) => i)
-                      .filter((i) => !solved.has(i));
-                    if (!remaining.length) return;
-                    const gi = remaining[Math.floor(Math.random() * remaining.length)];
-                    tiles
-                      .filter((t) => t.group === gi && t.state === "normal")
-                      .slice(0, 2)
-                      .forEach((t) => (t.state = "locked"));
-                    render();
-                  }
-
-                  function saveResult() {
-
+      function saveResult() {
         const name = document.getElementById("playerName").value.trim();
         if (!name) {
           alert("Syötä nimi");
           return;
         }
 
-        const timeUsed = 0;
-        const score = tries;
-
         const url =
-          "https://script.google.com/macros/s/AKfycbwqe4YZuOxbuPYd_vzCyyDHblPYxsA4PR_rxSaWypJ2Ppc7bFD1rDMPguP5knKRjlJRFg/exec"
-          + "?name=" + encodeURIComponent(name)
-          + "&tries=" + tries
-          + "&gameId=default"
-          + "&timeSeconds=" + timeUsed
-          + "&score=" + score;
+          WEBAPP_URL +
+          "?name=" +
+          encodeURIComponent(name) +
+          "&tries=" +
+          tries +
+          "&gameId=default" +
+          "&timeSeconds=0" +
+          "&score=" +
+          tries;
 
         fetch(url)
-          .then(() => alert("Tulos lähetetty!"))
-          .catch(err => {
+          .then(() => loadLeaderboard())
+          .catch((err) => {
             console.error(err);
             alert("Virhe lähetyksessä.");
           });
       }
 
+      function loadLeaderboard() {
+        fetch(WEBAPP_URL)
+          .then((res) => res.json())
+          .then((data) => {
+            let html =
+              "<table><tr><th>Sija</th><th>Nimi</th><th>Yritykset</th></tr>";
+            data.forEach((r, i) => {
+              html += `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.tries}</td></tr>`;
+            });
+            html += "</table>";
+            document.getElementById("resultsArea").innerHTML = html;
+          });
+      }
 
-                    const payload = {
-                      name: name,
-                      tries: tries,
-                      gameId: "default",
-                      timeSeconds:
-                        typeof timeLimit !== "undefined" ? timeLimit - timeLeft : 0,
-                      score:
-                        typeof timeLimit !== "undefined"
-                          ? tries + (timeLimit - timeLeft) / 10
-                          : tries,
-                    };
+      function resetGame() {
+        tiles = buildTiles();
+        selected.clear();
+        solved.clear();
+        tries = 0;
+        hints = 3;
+        render();
+      }
 
-                    fetch(
-                      "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                      },
-                    )
-                      .then((res) => res.json())
-                      .then((data) => {
-                        alert("Tulos lähetetty onnistuneesti!");
-                      })
-                      .catch((err) => {
-                        console.error(err);
-                        alert("Virhe lähetyksessä.");
-                      });
-                  }
-
-                  function showResults() {
-                    const results = JSON.parse(
-                      localStorage.getItem("nelosetResults") || "[]",
-                    );
-                    let html =
-                      "<table><tr><th>Nimi</th><th>Yritykset</th><th>Aika</th></tr>";
-                    results.forEach((r) => {
-                      html += `<tr><td>${r.name}</td><td>${r.tries}</td><td>${r.date}</td></tr>`;
-                    });
-                    html += "</table>";
-                    document.getElementById("resultsArea").innerHTML = html;
-                  }
-
-                  function clearResults() {
-                    localStorage.removeItem("nelosetResults");
-                    document.getElementById("resultsArea").innerHTML = "";
-                  }
-
-                  function resetGame() {
-                    tiles = buildTiles();
-                    selected.clear();
-                    solved.clear();
-                    tries = 0;
-                    hints = 3;
-                    document.getElementById("status").textContent = "";
-                    render();
-                  }
-
-                  resetGame();
+      resetGame();
+      loadLeaderboard();
     </script>
   </body>
 </html>
