@@ -1,0 +1,13 @@
+.solved-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.solved-row {
+  background: var(--good);
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: bold;
+}

@@ -119,6 +119,8 @@
         <div>Vihjeet: <span id="hints">3</span></div>
       </div>
 
+      <div id="solvedArea" class="solved-area"></div>
+
       <div class="grid" id="grid"></div>
 
       <div class="controls">
@@ -142,6 +144,10 @@
     <script>
       const WEBAPP_URL =
         "https://script.google.com/macros/s/AKfycbxl8JEwDVVx-feF4_wEK9W5ZhbbNMzVv5bwXu7cDFZzPbhpiwMVKp8h686fele5c2ZYQw/exec";
+
+      const GAME_ID = "luokka8A_kilpailu1";
+
+      let startTime = Date.now();
 
       const PUZZLE = {
         groups: [
@@ -183,32 +189,56 @@
         document.getElementById("tries").textContent = tries;
         document.getElementById("hints").textContent = hints;
 
+        // --- Ratkaistut ryhmät ---
+        const solvedArea = document.getElementById("solvedArea");
+        solvedArea.innerHTML = "";
+
+        solved.forEach((groupIndex) => {
+          const row = document.createElement("div");
+          row.className = "solved-row";
+          row.textContent =
+            PUZZLE.groups[groupIndex].name +
+            " – " +
+            PUZZLE.groups[groupIndex].words.join(", ");
+          solvedArea.appendChild(row);
+        });
+
+        // --- Ruudukko ---
         const grid = document.getElementById("grid");
         grid.innerHTML = "";
+
         tiles.forEach((t, i) => {
+          if (solved.has(t.group)) return; // älä näytä ratkaistuja
+
           const d = document.createElement("div");
           d.className = "tile";
+
           if (selected.has(i)) d.classList.add("selected");
-          if (t.state === "revealed") d.classList.add("revealed");
+
           d.textContent = t.word;
+
           d.onclick = () => {
-            if (t.state !== "normal") return;
             if (selected.has(i)) selected.delete(i);
             else if (selected.size < 4) selected.add(i);
             render();
           };
+
           grid.appendChild(d);
         });
       }
 
       function checkSelection() {
         if (selected.size !== 4) return;
+
         tries++;
+
         const idx = [...selected];
-        const g = tiles[idx[0]].group;
-        if (idx.every((i) => tiles[i].group === g)) {
-          idx.forEach((i) => (tiles[i].state = "revealed"));
+        const group = tiles[idx[0]].group;
+
+        if (idx.every((i) => tiles[i].group === group)) {
+          solved.add(group);
         }
+
         selected.clear();
         render();
       }
@@ -227,19 +257,27 @@
           return;
         }
 
+        const timeUsed = Math.floor((Date.now() - startTime) / 1000);
+        const score = tries + timeUsed / 10;
+
         const url =
           WEBAPP_URL +
           "?name=" +
           encodeURIComponent(name) +
           "&tries=" +
           tries +
-          "&gameId=default" +
-          "&timeSeconds=0" +
+          "&gameId=" +
+          GAME_ID +
+          "&timeSeconds=" +
+          timeUsed +
           "&score=" +
-          tries;
+          score;
 
         fetch(url)
-          .then(() => loadLeaderboard())
+          .then(() => {
+            alert("Tulos lähetetty!");
+            loadLeaderboard();
+          })
           .catch((err) => {
             console.error(err);
             alert("Virhe lähetyksessä.");
@@ -260,7 +298,10 @@
           });
       }
 
+      setInterval(loadLeaderboard, 10000);
+
       function resetGame() {
+        startTime = Date.now();
         tiles = buildTiles();
         selected.clear();
         solved.clear();
