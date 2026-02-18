@@ -1,4 +1,5 @@
-const WEBAPP_URL = "TÄHÄN_WEBAPP_URL";
+const WEBAPP_URL =
+  "https://script.google.com/macros/s/AKfycbwu4TRfSyaetBUPAXkn0w9lrtbV4xSM8_nT8DEqESscMxBJv6L2YvEWbJ7QDyv4k1fOew/exec";
 const GAME_ID = "kilpailu1";
 
 const PUZZLE = {
@@ -160,6 +161,7 @@ function saveResult(score, timeUsed) {
 }
 
 function loadLeaderboard() {
+  console.log("Fetching from:", WEBAPP_URL);
   fetch(WEBAPP_URL)
     .then((res) => res.json())
     .then((data) => {
