@@ -193,9 +193,47 @@
         <button onclick="clearResults()">Tyhjennä tulokset</button>
         <div id="resultsArea"></div>
       </div>
+      <div class="panel">
+        <h2>DEBUG</h2>
+        <button onclick="testPost()">Testaa POST suoraan</button>
+        <div id="debugOutput"></div>
+      </div>
     </div>
 
     <script>
+      function testPost() {
+        const debugDiv = document.getElementById("debugOutput");
+        debugDiv.textContent = "Lähetetään...";
+
+        fetch(
+          "https://script.google.com/macros/s/AKfycby798nyGje2iwyMyahFi-wB0GrnUkymJGYH9uhs9g4Hl2O7h056xy1sx6J8pcQWjocjjQ/exec",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: "TESTI",
+              tries: 1,
+              gameId: "debug",
+              timeSeconds: 10,
+              score: 5,
+            }),
+          },
+        )
+          .then((res) => {
+            debugDiv.textContent = "Status: " + res.status;
+            return res.text();
+          })
+          .then((text) => {
+            debugDiv.textContent += " | Vastaus: " + text;
+          })
+          .catch((err) => {
+            debugDiv.textContent = "Virhe: " + err;
+            console.error(err);
+          });
+      }
+
       const PUZZLE = {
         groups: [
           {
