@@ -7,7 +7,6 @@ const WEBAPP_URL =
 
 const GAME_ID = "kilpailu1";
 
-const DEFAULT_ROUNDS = 3;
 const HINT_PENALTY = 20;
 const HINTS_PER_ROUND = 2;
 
@@ -30,9 +29,7 @@ let hintsLeft = HINTS_PER_ROUND;
 let hintsUsed = 0;
 
 let gameStarted = false;
-let tournamentActive = false;
 
-let totalRounds = DEFAULT_ROUNDS;
 let currentRound = 1;
 let totalScore = 0;
 
@@ -57,20 +54,13 @@ function setStatus(text) {
 ========================= */
 
 function startGame() {
-  totalRounds = Number(document.getElementById("roundCount").value);
-  console.log("Erien määrä:", totalRounds);
-
   const name = document.getElementById("playerName").value.trim();
   if (!name) {
     setStatus("Syötä nimesi ennen pelin aloittamista.");
     return;
   }
 
-  totalRounds =
-    Number(document.getElementById("roundCount").value) || DEFAULT_ROUNDS;
-
   gameStarted = true;
-  tournamentActive = true;
   currentRound = 1;
   totalScore = 0;
 
@@ -81,11 +71,6 @@ function startGame() {
     }
 
     shuffledPuzzles = shuffle([...PUZZLE_POOL]);
-
-    if (totalRounds > shuffledPuzzles.length) {
-      totalRounds = shuffledPuzzles.length;
-    }
-
     startRound();
   });
 }
@@ -115,7 +100,7 @@ function startRound() {
   const puzzle = shuffledPuzzles[currentRound - 1];
 
   if (!puzzle) {
-    setStatus("Ei tarpeeksi sanasettejä.");
+    setStatus("Ei sanasettejä.");
     return;
   }
 
@@ -131,7 +116,7 @@ function startRound() {
   buildBoard();
   render();
 
-  setStatus(`Erä ${currentRound} / ${totalRounds}`);
+  setStatus(`Erä ${currentRound} / ${shuffledPuzzles.length}`);
 }
 
 /* =========================
@@ -145,10 +130,10 @@ function buildBoard() {
 /* =========================
    RENDER
 ========================= */
+
 function render() {
   document.getElementById("hints").textContent = hintsLeft;
 
-  // 1️⃣ Ratkaistut rivit
   const solvedArea = document.getElementById("solvedArea");
   solvedArea.innerHTML = "";
 
@@ -162,33 +147,26 @@ function render() {
     solvedArea.appendChild(row);
   });
 
-  // 2️⃣ Ruudukko
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
   allWords.forEach((word) => {
     const groupIndex = PUZZLE.groups.findIndex((g) => g.words.includes(word));
 
-    // Älä näytä ratkaistuja sanoja uudestaan
     if (solvedGroups.has(groupIndex)) return;
 
     const tile = document.createElement("div");
     tile.className = "tile";
 
-    if (selected.has(word)) {
-      tile.classList.add("selected");
-    }
+    if (selected.has(word)) tile.classList.add("selected");
 
     tile.textContent = word;
 
     tile.onclick = () => {
       if (!gameStarted) return;
 
-      if (selected.has(word)) {
-        selected.delete(word);
-      } else if (selected.size < 4) {
-        selected.add(word);
-      }
+      if (selected.has(word)) selected.delete(word);
+      else if (selected.size < 4) selected.add(word);
 
       render();
     };
@@ -241,7 +219,7 @@ function endRound() {
 
   totalScore += score;
 
-  if (currentRound >= totalRounds) {
+  if (currentRound >= shuffledPuzzles.length) {
     endTournament();
   } else {
     currentRound++;
@@ -254,7 +232,6 @@ function endRound() {
 ========================= */
 
 function endTournament() {
-  tournamentActive = false;
   gameStarted = false;
 
   setStatus(`Turnaus päättyi! Kokonaispisteet: ${totalScore}`);
@@ -315,10 +292,7 @@ function saveResult(score, timeUsed) {
     encodeURIComponent(score);
 
   const img = new Image();
-  img.onload = () => {
-    // odota hetki että Sheet ehtii päivittyä
-    setTimeout(loadLeaderboard, 500);
-  };
+  img.onload = () => setTimeout(loadLeaderboard, 500);
   img.src = url + "&_=" + Date.now();
 }
 
@@ -360,7 +334,6 @@ function loadLeaderboard() {
 
 function resetGame() {
   gameStarted = false;
-  tournamentActive = false;
   currentRound = 1;
   totalScore = 0;
 
