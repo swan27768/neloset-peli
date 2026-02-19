@@ -1,6 +1,9 @@
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbwiIJEXAcrkbdeKu6eHtKaEHAd0J958gfTc0wf8-gG3ONYVkT9z2XpDEsLpiRk2jX3yBg/exec";
+  "https://script.google.com/macros/s/AKfycbyNnQJe42-Bg4hYZMW7QyLoe6f8lWiGQP8qjbdcUF1PWl3TABpL4ZhE_R2o-HT34gKAfg/exec";
 const GAME_ID = "kilpailu1";
+
+let gameStarted = false;
+let timerInterval = null;
 
 const PUZZLE = {
   groups: [
@@ -10,6 +13,26 @@ const PUZZLE = {
     { name: "KOULU", words: ["kynä", "vihko", "reppu", "kumi"] },
   ],
 };
+
+function startGame() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) {
+    setStatus("Syötä nimesi ennen pelin aloittamista.");
+    return;
+  }
+
+  gameStarted = true;
+  startTime = Date.now();
+
+  // käynnistä ajastin
+  timerInterval = setInterval(() => {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById("time").textContent = seconds;
+  }, 1000);
+
+  setStatus("Peli käynnissä. Onnea!");
+  resetGame();
+}
 
 let allWords = [];
 let selected = new Set();
@@ -73,6 +96,11 @@ function render() {
 }
 
 function checkSelection() {
+  if (!gameStarted) {
+    setStatus("Kirjaudu ensin peliin.");
+    return;
+  }
+
   if (selected.size !== 4) {
     setStatus("Valitse neljä sanaa.");
     return;
@@ -101,6 +129,11 @@ function checkSelection() {
 }
 
 function giveHint() {
+  if (!gameStarted) {
+    setStatus("Kirjaudu ensin peliin.");
+    return;
+  }
+
   if (hintsLeft <= 0) {
     setStatus("Ei vihjeitä jäljellä.");
     return;
@@ -128,21 +161,31 @@ function giveHint() {
 }
 
 function endGame() {
-  const timeUsed = Math.floor((Date.now() - startTime) / 1000);
+  clearInterval(timerInterval);
 
+  const timeUsed = Math.floor((Date.now() - startTime) / 1000);
   const score = timeUsed + hintsUsed * 20;
 
-  setStatus("Valmis! Aika: " + timeUsed + " s | Pisteet: " + score);
+  setStatus(
+    `Valmis! Aika: ${timeUsed}s | Vihjeet: ${hintsUsed} | Pisteet: ${score}`,
+  );
 
   saveResult(score, timeUsed);
 }
 
 function saveResult(score, timeUsed) {
   const name = document.getElementById("playerName").value.trim();
-
   if (!name) {
     setStatus("Syötä nimi ennen tuloksen tallennusta.");
     return;
+  }
+
+  // Jos saveResultia kutsutaan ilman parametreja, laske ne tässä
+  if (typeof timeUsed !== "number" || Number.isNaN(timeUsed)) {
+    timeUsed = Math.floor((Date.now() - startTime) / 1000);
+  }
+  if (typeof score !== "number" || Number.isNaN(score)) {
+    score = timeUsed + hintsUsed * 20;
   }
 
   const url =
@@ -151,40 +194,52 @@ function saveResult(score, timeUsed) {
     encodeURIComponent(name) +
     "&tries=0" +
     "&gameId=" +
-    GAME_ID +
+    encodeURIComponent(GAME_ID) +
     "&timeSeconds=" +
-    timeUsed +
+    encodeURIComponent(timeUsed) +
     "&score=" +
-    score;
+    encodeURIComponent(score);
 
-  fetch(url).then(() => loadLeaderboard());
+  // Beacon-tyylinen lähetys (CORS ei blokkaa)
+  const img = new Image();
+  img.onload = () => {
+    setStatus("Tulos lähetetty!");
+    loadLeaderboard();
+  };
+  img.onerror = () => {
+    // Tallennus voi silti mennä perille vaikka onerror laukeaa,
+    // mutta ilmoitetaan varmuuden vuoksi.
+    setStatus("Tulos lähetetty (tarkista leaderboard).");
+    loadLeaderboard();
+  };
+  img.src = url + "&_=" + Date.now(); // cache-buster
 }
 
 function loadLeaderboard() {
-  fetch(WEBAPP_URL)
-    .then((res) => res.text())
-    .then((text) => {
-      // Yritetään parse JSON vain jos se näyttää JSONilta
-      if (text.trim().startsWith("[")) {
-        const data = JSON.parse(text);
+  const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
 
-        let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+  window[cbName] = function (data) {
+    try {
+      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+      data.forEach((r, i) => {
+        html += `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.score}</td></tr>`;
+      });
+      html += "</table>";
+      document.getElementById("resultsArea").innerHTML = html;
+    } finally {
+      delete window[cbName];
+      script.remove();
+    }
+  };
 
-        data.forEach((r, i) => {
-          html += `<tr>
-            <td>${i + 1}</td>
-            <td>${r.name}</td>
-            <td>${r.score}</td>
-          </tr>`;
-        });
-
-        html += "</table>";
-        document.getElementById("resultsArea").innerHTML = html;
-      } else {
-        console.error("Palvelin ei palauttanut JSONia:", text);
-      }
-    })
-    .catch((err) => console.error(err));
+  const script = document.createElement("script");
+  script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
+  script.onerror = () => {
+    setStatus("Leaderboard ei latautunut (verkko tai URL).");
+    delete window[cbName];
+    script.remove();
+  };
+  document.body.appendChild(script);
 }
 
 function setStatus(text) {
