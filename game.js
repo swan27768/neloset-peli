@@ -1,17 +1,18 @@
+/* =========================
+   KONFIGURAATIO
+========================= */
+
 const WEBAPP_URL =
   "https://script.google.com/macros/s/AKfycbwKR_kefhzwqZZbUgnpchgs4cP38ACSGnpSzHNKp5PoAnVDBpaS_NuBsMUkewWDkDsS8A/exec";
 
 const GAME_ID = "kilpailu1";
 
-/* =========================
-   KONFIGURAATIO (const)
-========================= */
 const DEFAULT_ROUNDS = 3;
 const HINT_PENALTY = 20;
 const HINTS_PER_ROUND = 2;
 
 /* =========================
-   SANALISTA / PUZZLE POOL
+   SANASETIT
 ========================= */
 
 const PUZZLE_POOL = [
@@ -24,27 +25,36 @@ const PUZZLE_POOL = [
     ],
   },
 ];
+
 let PUZZLE = { groups: [] };
+
+/* =========================
+   PELITILA
+========================= */
 
 let allWords = [];
 let selected = new Set();
 let solvedGroups = new Set();
+
 let hintsLeft = HINTS_PER_ROUND;
 let hintsUsed = 0;
 
 let gameStarted = false;
+let tournamentActive = false;
+
+let totalRounds = DEFAULT_ROUNDS;
+let currentRound = 1;
+
+let totalScore = 0;
+
 let startTime = 0;
 let timerInterval = null;
 
-let totalRounds = 3; // Opettaja määrittää
-let currentRound = 1;
-
-let roundScore = 0;
-let totalScore = 0;
-
 let shuffledPuzzles = [];
 
-/* -------------------- Utility -------------------- */
+/* =========================
+   UTIL
+========================= */
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) {
@@ -57,9 +67,11 @@ function shuffle(a) {
 function setStatus(text) {
   document.getElementById("status").textContent = text;
 }
+
 /* =========================
-   GAME FLOW (Turnaus)
+   TURNauksen KÄYNNISTYS
 ========================= */
+
 function startGame() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) {
@@ -67,39 +79,29 @@ function startGame() {
     return;
   }
 
-  gameStarted = true;
-
   totalRounds =
     Number(document.getElementById("roundCount").value) || DEFAULT_ROUNDS;
 
-  currentRound = 1;
-  totalScore = 0;
-
-  // 🔹 ESTÄÄ TOISTON
   shuffledPuzzles = shuffle([...PUZZLE_POOL]);
 
   if (totalRounds > shuffledPuzzles.length) {
     totalRounds = shuffledPuzzles.length;
   }
 
+  currentRound = 1;
+  totalScore = 0;
+
+  gameStarted = true;
+  tournamentActive = true;
+
   startRound();
 }
 
+/* =========================
+   ERÄN ALOITUS
+========================= */
+
 function startRound() {
-  loadRandomPuzzle();
-
-  selected.clear();
-  solvedGroups.clear();
-  hintsLeft = HINTS_PER_ROUND;
-  hintsUsed = 0;
-  startTime = Date.now();
-
-  buildBoard();
-  render();
-
-  setStatus(`Erä ${currentRound} / ${totalRounds}`);
-}
-function loadRandomPuzzle() {
   const puzzle = shuffledPuzzles[currentRound - 1];
 
   if (!puzzle) {
@@ -108,28 +110,51 @@ function loadRandomPuzzle() {
   }
 
   PUZZLE.groups = puzzle.groups;
+
+  selected.clear();
+  solvedGroups.clear();
+  hintsLeft = HINTS_PER_ROUND;
+  hintsUsed = 0;
+
+  startTime = Date.now();
+
+  buildBoard();
+  render();
+
+  setStatus(`Erä ${currentRound} / ${totalRounds}`);
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById("time").textContent = seconds;
+  }, 1000);
 }
+
+/* =========================
+   BREAK SCREEN
+========================= */
 
 function showBreakScreen() {
-  document.getElementById("grid").innerHTML = `<div class="break-screen">
-      <h2>Erä valmis</h2>
+  document.getElementById("grid").innerHTML = `
+    <div class="break-screen">
+      <h2>Erä ${currentRound - 1} valmis</h2>
       <p>Kokonaispisteet: ${totalScore}</p>
       <button onclick="startRound()">Seuraava erä</button>
-    </div>`;
+    </div>
+  `;
 }
 
-function endGame() {
+/* =========================
+   ERÄN LOPPU
+========================= */
+
+function endRound() {
+  clearInterval(timerInterval);
+
   const timeUsed = Math.floor((Date.now() - startTime) / 1000);
-  const score = timeUsed + hintsUsed * 20;
+  const score = timeUsed + hintsUsed * HINT_PENALTY;
 
-  roundScore = score;
-  totalScore += roundScore;
-
-  setStatus(
-    `Erä ${currentRound} valmis!
-     Eräpisteet: ${roundScore}
-     Kokonaispisteet: ${totalScore}`,
-  );
+  totalScore += score;
 
   if (currentRound >= totalRounds) {
     endTournament();
@@ -138,34 +163,31 @@ function endGame() {
     showBreakScreen();
   }
 }
+
+/* =========================
+   TURNAUKSEN LOPPU
+========================= */
+
 function endTournament() {
   tournamentActive = false;
+  gameStarted = false;
 
-  setStatus(
-    `Turnaus päättyi!
-     Kokonaispisteet: ${totalScore}`,
-  );
+  setStatus(`Turnaus päättyi! Kokonaispisteet: ${totalScore}`);
 
   saveResult(totalScore, totalScore);
 }
 
-/* -------------------- Game Setup -------------------- */
+/* =========================
+   LAUDAN RAKENNUS
+========================= */
 
 function buildBoard() {
   allWords = shuffle(PUZZLE.groups.flatMap((g) => g.words));
 }
 
-function resetGame() {
-  selected.clear();
-  solvedGroups.clear();
-  hintsLeft = HINTS_PER_ROUND;
-  hintsUsed = 0;
-
-  buildBoard();
-  render();
-}
-
-/* -------------------- Rendering -------------------- */
+/* =========================
+   RENDER
+========================= */
 
 function render() {
   document.getElementById("hints").textContent = hintsLeft;
@@ -214,13 +236,12 @@ function render() {
   });
 }
 
-/* -------------------- Game Logic -------------------- */
+/* =========================
+   TARKISTUS
+========================= */
 
 function checkSelection() {
-  if (!gameStarted) {
-    setStatus("Kirjaudu ensin peliin.");
-    return;
-  }
+  if (!gameStarted) return;
 
   if (selected.size !== 4) {
     setStatus("Valitse neljä sanaa.");
@@ -239,7 +260,7 @@ function checkSelection() {
     setStatus("Oikein!");
 
     if (solvedGroups.size === PUZZLE.groups.length) {
-      endGame();
+      endRound();
     }
   } else {
     selected.clear();
@@ -249,11 +270,12 @@ function checkSelection() {
   render();
 }
 
+/* =========================
+   VIHJE
+========================= */
+
 function giveHint() {
-  if (!gameStarted) {
-    setStatus("Kirjaudu ensin peliin.");
-    return;
-  }
+  if (!gameStarted) return;
 
   if (hintsLeft <= 0) {
     setStatus("Ei vihjeitä jäljellä.");
@@ -277,11 +299,12 @@ function giveHint() {
   hintsLeft--;
   hintsUsed++;
 
-  setStatus("Kaksi sanaa paljastettu.");
   render();
 }
 
-/* -------------------- Save Result (No CORS) -------------------- */
+/* =========================
+   TULOKSEN TALLENNUS (NO CORS)
+========================= */
 
 function saveResult(score, timeUsed) {
   const name = document.getElementById("playerName").value.trim();
@@ -304,21 +327,26 @@ function saveResult(score, timeUsed) {
   img.src = url + "&_=" + Date.now();
 }
 
-/* -------------------- Leaderboard (JSONP) -------------------- */
+/* =========================
+   LEADERBOARD (JSONP)
+========================= */
 
 function loadLeaderboard() {
-  const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+  const cbName = "cb_" + Date.now();
+
+  const script = document.createElement("script");
 
   window[cbName] = function (data) {
     try {
       let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
 
       data.forEach((r, i) => {
-        html += `<tr>
-          <td>${i + 1}</td>
-          <td>${r.name}</td>
-          <td>${r.score}</td>
-        </tr>`;
+        html += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${r.name}</td>
+            <td>${r.score}</td>
+          </tr>`;
       });
 
       html += "</table>";
@@ -329,11 +357,13 @@ function loadLeaderboard() {
     }
   };
 
-  const script = document.createElement("script");
   script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
+
   document.body.appendChild(script);
 }
 
-/* -------------------- Initial Load -------------------- */
+/* =========================
+   INIT
+========================= */
 
 loadLeaderboard();
