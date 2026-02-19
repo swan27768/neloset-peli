@@ -235,6 +235,7 @@ function endRound() {
 ========================= */
 
 function endTournament() {
+  tournamentActive = false;
   gameStarted = false;
 
   setStatus(`Turnaus päättyi! Kokonaispisteet: ${totalScore}`);
@@ -295,7 +296,14 @@ function saveResult(score, timeUsed) {
     encodeURIComponent(score);
 
   const img = new Image();
-  img.onload = () => setTimeout(loadLeaderboard, 500);
+
+  img.onload = () => {
+    // Anna Apps Scriptin kirjoittaa Sheettiin
+    setTimeout(() => {
+      loadLeaderboard();
+    }, 800);
+  };
+
   img.src = url + "&_=" + Date.now();
 }
 
@@ -370,5 +378,12 @@ function stopLeaderboardAutoRefresh() {
    INIT
 ========================= */
 
+// Lataa heti
 loadLeaderboard();
-startLeaderboardAutoRefresh();
+
+// Päivitä 5 sek välein
+setInterval(() => {
+  if (!tournamentActive) {
+    loadLeaderboard();
+  }
+}, 5000);
