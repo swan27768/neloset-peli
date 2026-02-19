@@ -57,6 +57,9 @@ function setStatus(text) {
 ========================= */
 
 function startGame() {
+  totalRounds = Number(document.getElementById("roundCount").value);
+  console.log("Erien määrä:", totalRounds);
+
   const name = document.getElementById("playerName").value.trim();
   if (!name) {
     setStatus("Syötä nimesi ennen pelin aloittamista.");
@@ -142,30 +145,50 @@ function buildBoard() {
 /* =========================
    RENDER
 ========================= */
-
 function render() {
   document.getElementById("hints").textContent = hintsLeft;
 
+  // 1️⃣ Ratkaistut rivit
+  const solvedArea = document.getElementById("solvedArea");
+  solvedArea.innerHTML = "";
+
+  solvedGroups.forEach((groupIndex) => {
+    const row = document.createElement("div");
+    row.className = "solved-row";
+    row.textContent =
+      PUZZLE.groups[groupIndex].name +
+      " – " +
+      PUZZLE.groups[groupIndex].words.join(", ");
+    solvedArea.appendChild(row);
+  });
+
+  // 2️⃣ Ruudukko
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
   allWords.forEach((word) => {
     const groupIndex = PUZZLE.groups.findIndex((g) => g.words.includes(word));
 
+    // Älä näytä ratkaistuja sanoja uudestaan
     if (solvedGroups.has(groupIndex)) return;
 
     const tile = document.createElement("div");
     tile.className = "tile";
 
-    if (selected.has(word)) tile.classList.add("selected");
+    if (selected.has(word)) {
+      tile.classList.add("selected");
+    }
 
     tile.textContent = word;
 
     tile.onclick = () => {
       if (!gameStarted) return;
 
-      if (selected.has(word)) selected.delete(word);
-      else if (selected.size < 4) selected.add(word);
+      if (selected.has(word)) {
+        selected.delete(word);
+      } else if (selected.size < 4) {
+        selected.add(word);
+      }
 
       render();
     };
@@ -292,7 +315,10 @@ function saveResult(score, timeUsed) {
     encodeURIComponent(score);
 
   const img = new Image();
-  img.onload = () => loadLeaderboard();
+  img.onload = () => {
+    // odota hetki että Sheet ehtii päivittyä
+    setTimeout(loadLeaderboard, 500);
+  };
   img.src = url + "&_=" + Date.now();
 }
 
