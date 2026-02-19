@@ -1,54 +1,70 @@
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Neloset – Turnaus</title>
+    <title>Neloset – Turnaus</title>
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css" />
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
 
-  <!-- Google Font (valinnainen, jos käytät fonttia) -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-    rel="stylesheet"
-  />
+    <!-- Google Font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <!-- Favicon (valinnainen) -->
-  <link rel="icon" type="image/png" href="favicon.png" />
-</head>
+    <!-- Favicon (valinnainen) -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+  </head>
 
-<div class="wrap">
-  <h1>Neloset</h1>
+  <body>
+    <div class="wrap">
+      <h1>Neloset</h1>
 
-  <div class="panel">
-    <h2>Kirjaudu peliin omalla nimellä</h2>
+      <!-- KIRJAUTUMINEN -->
+      <div class="panel">
+        <h2>Kirjaudu peliin omalla nimellä</h2>
 
-    <input id="playerName" placeholder="Kirjoita nimesi" />
+        <input id="playerName" placeholder="Kirjoita nimesi" />
 
-    <label>Erien määrä:</label>
-    <input type="number" id="roundCount" value="3" min="1" max="10" />
+        <label>Erien määrä:</label>
+        <input type="number" id="roundCount" value="3" min="1" max="10" />
 
-    <button class="primary" onclick="startGame()">Aloita peli</button>
-  </div>
+        <button class="primary" onclick="startGame()">Aloita peli</button>
+      </div>
 
-  <div id="status" class="status"></div>
+      <!-- STATUS -->
+      <div id="status" class="status"></div>
 
-  <div class="stats">
-    <div>Vihjeet jäljellä: <span id="hints">2</span></div>
-    <div>Aika: <span id="time">0</span>s</div>
-  </div>
+      <!-- STATISTICS -->
+      <div class="stats">
+        <div>Vihjeet jäljellä: <span id="hints">2</span></div>
+        <div>Aika: <span id="time">0</span>s</div>
+      </div>
 
-  <div id="solvedArea" class="solved-area"></div>
-  <div class="grid" id="grid"></div>
+      <!-- RATKAISTUT -->
+      <div id="solvedArea" class="solved-area"></div>
 
-  <div class="controls">
-    <button class="primary" onclick="checkSelection()">Tarkista</button>
-    <button onclick="giveHint()">Vihje</button>
-    <button class="bad" onclick="resetGame()">Uusi peli</button>
-  </div>
+      <!-- PELILAUTA -->
+      <div class="grid" id="grid"></div>
 
-  <div class="panel">
-    <h2>Leaderboard (TOP 10)</h2>
-    <div id="resultsArea"></div>
-  </div>
-</div>
+      <!-- CONTROLS -->
+      <div class="controls">
+        <button class="primary" onclick="checkSelection()">Tarkista</button>
+        <button onclick="giveHint()">Vihje</button>
+        <button class="bad" onclick="resetGame()">Uusi peli</button>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="panel">
+        <h2>Leaderboard (TOP 10)</h2>
+        <div id="resultsArea"></div>
+      </div>
+    </div>
+
+    <!-- GAME SCRIPT -->
+    <script src="game.js"></script>
+  </body>
+</html>
