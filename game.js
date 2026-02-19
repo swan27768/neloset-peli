@@ -1,5 +1,5 @@
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbwu4TRfSyaetBUPAXkn0w9lrtbV4xSM8_nT8DEqESscMxBJv6L2YvEWbJ7QDyv4k1fOew/exec";
+  "https://script.google.com/macros/s/AKfycbwiIJEXAcrkbdeKu6eHtKaEHAd0J958gfTc0wf8-gG3ONYVkT9z2XpDEsLpiRk2jX3yBg/exec";
 const GAME_ID = "kilpailu1";
 
 const PUZZLE = {
@@ -161,17 +161,30 @@ function saveResult(score, timeUsed) {
 }
 
 function loadLeaderboard() {
-  console.log("Fetching from:", WEBAPP_URL);
   fetch(WEBAPP_URL)
-    .then((res) => res.json())
-    .then((data) => {
-      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
-      data.forEach((r, i) => {
-        html += `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.score}</td></tr>`;
-      });
-      html += "</table>";
-      document.getElementById("resultsArea").innerHTML = html;
-    });
+    .then((res) => res.text())
+    .then((text) => {
+      // Yritetään parse JSON vain jos se näyttää JSONilta
+      if (text.trim().startsWith("[")) {
+        const data = JSON.parse(text);
+
+        let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+
+        data.forEach((r, i) => {
+          html += `<tr>
+            <td>${i + 1}</td>
+            <td>${r.name}</td>
+            <td>${r.score}</td>
+          </tr>`;
+        });
+
+        html += "</table>";
+        document.getElementById("resultsArea").innerHTML = html;
+      } else {
+        console.error("Palvelin ei palauttanut JSONia:", text);
+      }
+    })
+    .catch((err) => console.error(err));
 }
 
 function setStatus(text) {
