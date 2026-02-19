@@ -1,5 +1,5 @@
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyNnQJe42-Bg4hYZMW7QyLoe6f8lWiGQP8qjbdcUF1PWl3TABpL4ZhE_R2o-HT34gKAfg/exec";
+  "https://script.google.com/macros/s/AKfycbyurfZtIZBHsZw3hBmmwEHoxItINPs42spQgDPj0Povq4lwYjP1FQihv4sX2xKDbq8pcQ/exec";
 const GAME_ID = "kilpailu1";
 
 let gameStarted = false;
