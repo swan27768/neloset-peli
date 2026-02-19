@@ -1,36 +1,48 @@
-<body>
-  <div class="wrap">
-    <h1>Neloset</h1>
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-    <!-- KIRJAUTUMINEN -->
-    <div class="panel">
-      <h2>Kirjaudu peliin omalla nimellä</h2>
-      <input id="playerName" placeholder="Kirjoita nimesi" />
-      <button class="primary" onclick="startGame()">Aloita peli</button>
+    <!-- CSS -->
+    <link rel="stylesheet" href="./style.css" />
+
+    <title>Neloset</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Neloset</h1>
+
+      <!-- KIRJAUTUMINEN -->
+      <div class="panel">
+        <h2>Kirjaudu peliin omalla nimellä</h2>
+        <input id="playerName" placeholder="Kirjoita nimesi" />
+        <button class="primary" onclick="startGame()">Aloita peli</button>
+      </div>
+
+      <!-- Status -->
+      <div id="status" class="status"></div>
+
+      <div class="stats">
+        <div>Vihjeet jäljellä: <span id="hints">2</span></div>
+        <div>Aika: <span id="time">0</span>s</div>
+      </div>
+
+      <div id="solvedArea" class="solved-area"></div>
+      <div class="grid" id="grid"></div>
+
+      <div class="controls">
+        <button class="primary" onclick="checkSelection()">Tarkista</button>
+        <button onclick="giveHint()">Vihje</button>
+        <button class="bad" onclick="resetGame()">Uusi peli</button>
+      </div>
+
+      <div class="panel">
+        <h2>Leaderboard (TOP 10)</h2>
+        <div id="resultsArea"></div>
+      </div>
     </div>
 
-    <!-- Status -->
-    <div id="status" class="status"></div>
-
-    <div class="stats">
-      <div>Vihjeet jäljellä: <span id="hints">2</span></div>
-      <div>Aika: <span id="time">0</span>s</div>
-    </div>
-
-    <div id="solvedArea" class="solved-area"></div>
-    <div class="grid" id="grid"></div>
-
-    <div class="controls">
-      <button class="primary" onclick="checkSelection()">Tarkista</button>
-      <button onclick="giveHint()">Vihje</button>
-      <button class="bad" onclick="resetGame()">Uusi peli</button>
-    </div>
-
-    <div class="panel">
-      <h2>Leaderboard (TOP 10)</h2>
-      <div id="resultsArea"></div>
-    </div>
-  </div>
-
-  <script src="game.js"></script>
-</body>
+    <script src="game.js"></script>
+  </body>
+</html>
