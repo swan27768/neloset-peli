@@ -10,6 +10,9 @@ const GAME_ID = "kilpailu1";
 const HINT_PENALTY = 20;
 const HINTS_PER_ROUND = 2;
 
+const LEADERBOARD_REFRESH_MS = 3000; // 3 sekuntia
+let leaderboardInterval = null;
+
 /* =========================
    SANASETIT
 ========================= */
@@ -305,26 +308,28 @@ function loadLeaderboard() {
   const script = document.createElement("script");
 
   window[cbName] = function (data) {
-    let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+    try {
+      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
 
-    data.forEach((r, i) => {
-      html += `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${r.name}</td>
-          <td>${r.score}</td>
-        </tr>`;
-    });
+      data.forEach((r, i) => {
+        html += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${r.name}</td>
+            <td>${r.score}</td>
+          </tr>`;
+      });
 
-    html += "</table>";
-
-    document.getElementById("resultsArea").innerHTML = html;
-
-    delete window[cbName];
-    script.remove();
+      html += "</table>";
+      document.getElementById("resultsArea").innerHTML = html;
+    } finally {
+      delete window[cbName];
+      script.remove();
+    }
   };
 
   script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
+
   document.body.appendChild(script);
 }
 
@@ -346,9 +351,24 @@ function resetGame() {
   setStatus("Peli nollattu.");
   document.getElementById("grid").innerHTML = "";
 }
+function startLeaderboardAutoRefresh() {
+  if (leaderboardInterval) return;
+
+  leaderboardInterval = setInterval(() => {
+    loadLeaderboard();
+  }, LEADERBOARD_REFRESH_MS);
+}
+
+function stopLeaderboardAutoRefresh() {
+  if (leaderboardInterval) {
+    clearInterval(leaderboardInterval);
+    leaderboardInterval = null;
+  }
+}
 
 /* =========================
    INIT
 ========================= */
 
 loadLeaderboard();
+startLeaderboardAutoRefresh();
