@@ -15,9 +15,7 @@ const HINTS_PER_ROUND = 2;
    SANASETIT
 ========================= */
 
-// 🔥 TÄMÄ EI SAA OLLA CONST
 let PUZZLE_POOL = [];
-
 let PUZZLE = { groups: [] };
 
 /* =========================
@@ -36,11 +34,9 @@ let tournamentActive = false;
 
 let totalRounds = DEFAULT_ROUNDS;
 let currentRound = 1;
-
 let totalScore = 0;
 
 let startTime = 0;
-let timerInterval = null;
 
 let shuffledPuzzles = [];
 
@@ -61,8 +57,6 @@ function setStatus(text) {
 ========================= */
 
 function startGame() {
-  console.log("▶ startGame called");
-
   const name = document.getElementById("playerName").value.trim();
   if (!name) {
     setStatus("Syötä nimesi ennen pelin aloittamista.");
@@ -77,11 +71,7 @@ function startGame() {
   currentRound = 1;
   totalScore = 0;
 
-  console.log("Haetaan sanalistat...");
-
   loadPuzzlesFromSheet(() => {
-    console.log("Sanalistat ladattu:", PUZZLE_POOL);
-
     if (!PUZZLE_POOL.length) {
       setStatus("Sanasettejä ei löytynyt.");
       return;
@@ -93,7 +83,6 @@ function startGame() {
       totalRounds = shuffledPuzzles.length;
     }
 
-    console.log("Aloitetaan erä 1");
     startRound();
   });
 }
@@ -103,13 +92,9 @@ function loadPuzzlesFromSheet(callback) {
   const script = document.createElement("script");
 
   window[cbName] = function (data) {
-    console.log("JSONP callback saatu:", data);
-
-    PUZZLE_POOL = data; // nyt sallittu
-
+    PUZZLE_POOL = data;
     delete window[cbName];
     script.remove();
-
     if (callback) callback();
   };
 
@@ -124,12 +109,9 @@ function loadPuzzlesFromSheet(callback) {
 ========================= */
 
 function startRound() {
-  console.log("▶ startRound", currentRound);
-
   const puzzle = shuffledPuzzles[currentRound - 1];
 
   if (!puzzle) {
-    console.log("Ei puzzlea löytynyt");
     setStatus("Ei tarpeeksi sanasettejä.");
     return;
   }
@@ -154,8 +136,6 @@ function startRound() {
 ========================= */
 
 function buildBoard() {
-  console.log("Rakennetaan lauta");
-
   allWords = shuffle(PUZZLE.groups.flatMap((g) => g.words));
 }
 
@@ -164,8 +144,6 @@ function buildBoard() {
 ========================= */
 
 function render() {
-  console.log("Render");
-
   document.getElementById("hints").textContent = hintsLeft;
 
   const grid = document.getElementById("grid");
@@ -201,8 +179,6 @@ function render() {
 ========================= */
 
 function checkSelection() {
-  console.log("Tarkistetaan valinta");
-
   if (!gameStarted) return;
 
   if (selected.size !== 4) {
@@ -237,8 +213,6 @@ function checkSelection() {
 ========================= */
 
 function endRound() {
-  console.log("Erä päättyi");
-
   const timeUsed = Math.floor((Date.now() - startTime) / 1000);
   const score = timeUsed + hintsUsed * HINT_PENALTY;
 
@@ -257,8 +231,6 @@ function endRound() {
 ========================= */
 
 function endTournament() {
-  console.log("Turnaus päättyi");
-
   tournamentActive = false;
   gameStarted = false;
 
@@ -268,26 +240,80 @@ function endTournament() {
 }
 
 /* =========================
-   TULOSTEN HAKU
+   VIHJE
+========================= */
+
+function giveHint() {
+  if (!gameStarted) return;
+
+  if (hintsLeft <= 0) {
+    setStatus("Ei vihjeitä jäljellä.");
+    return;
+  }
+
+  const remaining = PUZZLE.groups
+    .map((_, i) => i)
+    .filter((i) => !solvedGroups.has(i));
+
+  if (!remaining.length) return;
+
+  const randomGroup = remaining[Math.floor(Math.random() * remaining.length)];
+
+  const words = PUZZLE.groups[randomGroup].words;
+
+  selected.clear();
+  selected.add(words[0]);
+  selected.add(words[1]);
+
+  hintsLeft--;
+  hintsUsed++;
+
+  render();
+}
+
+/* =========================
+   TULOKSEN TALLENNUS
+========================= */
+
+function saveResult(score, timeUsed) {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) return;
+
+  const url =
+    WEBAPP_URL +
+    "?name=" +
+    encodeURIComponent(name) +
+    "&tries=0" +
+    "&gameId=" +
+    encodeURIComponent(GAME_ID) +
+    "&timeSeconds=" +
+    encodeURIComponent(timeUsed) +
+    "&score=" +
+    encodeURIComponent(score);
+
+  const img = new Image();
+  img.onload = () => loadLeaderboard();
+  img.src = url + "&_=" + Date.now();
+}
+
+/* =========================
+   LEADERBOARD
 ========================= */
 
 function loadLeaderboard() {
-  console.log("Haetaan leaderboard");
-
   const cbName = "cb_" + Date.now();
   const script = document.createElement("script");
 
   window[cbName] = function (data) {
-    console.log("Leaderboard data:", data);
-
     let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
 
     data.forEach((r, i) => {
-      html += `<tr>
-        <td>${i + 1}</td>
-        <td>${r.name}</td>
-        <td>${r.score}</td>
-      </tr>`;
+      html += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.score}</td>
+        </tr>`;
     });
 
     html += "</table>";
@@ -299,9 +325,31 @@ function loadLeaderboard() {
   };
 
   script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
-
   document.body.appendChild(script);
 }
 
-/* INIT */
+/* =========================
+   RESET
+========================= */
+
+function resetGame() {
+  gameStarted = false;
+  tournamentActive = false;
+  currentRound = 1;
+  totalScore = 0;
+
+  selected.clear();
+  solvedGroups.clear();
+
+  hintsLeft = HINTS_PER_ROUND;
+  hintsUsed = 0;
+
+  setStatus("Peli nollattu.");
+  document.getElementById("grid").innerHTML = "";
+}
+
+/* =========================
+   INIT
+========================= */
+
 loadLeaderboard();
