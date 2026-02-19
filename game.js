@@ -3,7 +3,7 @@
 ========================= */
 
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbwKR_kefhzwqZZbUgnpchgs4cP38ACSGnpSzHNKp5PoAnVDBpaS_NuBsMUkewWDkDsS8A/exec";
+  "https://script.google.com/macros/s/AKfycbyO_GR0rAvKD-T2sNEQs83EEgKoCZBIsF4STWe49tInoqzGVuheOvKlVsRLNVziqweL0w/exec";
 
 const GAME_ID = "kilpailu1";
 
@@ -82,19 +82,43 @@ function startGame() {
   totalRounds =
     Number(document.getElementById("roundCount").value) || DEFAULT_ROUNDS;
 
-  shuffledPuzzles = shuffle([...PUZZLE_POOL]);
-
-  if (totalRounds > shuffledPuzzles.length) {
-    totalRounds = shuffledPuzzles.length;
-  }
-
+  gameStarted = true;
+  tournamentActive = true;
   currentRound = 1;
   totalScore = 0;
 
-  gameStarted = true;
-  tournamentActive = true;
+  loadPuzzlesFromSheet(() => {
+    if (!PUZZLE_POOL.length) {
+      setStatus("Sanasettejä ei löytynyt.");
+      return;
+    }
 
-  startRound();
+    shuffledPuzzles = shuffle([...PUZZLE_POOL]);
+
+    if (totalRounds > shuffledPuzzles.length) {
+      totalRounds = shuffledPuzzles.length;
+    }
+
+    startRound();
+  });
+}
+
+function loadPuzzlesFromSheet(callback) {
+  const cbName = "puzzle_cb_" + Date.now();
+  const script = document.createElement("script");
+
+  window[cbName] = function (data) {
+    PUZZLE_POOL = data;
+    delete window[cbName];
+    script.remove();
+
+    if (callback) callback();
+  };
+
+  script.src =
+    WEBAPP_URL + "?action=puzzles&callback=" + cbName + "&_=" + Date.now();
+
+  document.body.appendChild(script);
 }
 
 /* =========================
