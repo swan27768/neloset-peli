@@ -1,26 +1,48 @@
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyNnQJe42-Bg4hYZMW7QyLoe6f8lWiGQP8qjbdcUF1PWl3TABpL4ZhE_R2o-HT34gKAfg/exec";
+  "https://script.google.com/macros/s/AKfycbwhoeuTPctryeDdoJnVLfTAdVVwzgNNGYe0wRV4SwrruprUagDcwNHwxj-G_uWSvwyO9w/exec";
 
 const GAME_ID = "kilpailu1";
 
-const PUZZLE = {
-  groups: [
-    { name: "ELÄIMET", words: ["kissa", "koira", "lehmä", "hevonen"] },
-    { name: "VÄRIT", words: ["punainen", "sininen", "vihreä", "keltainen"] },
-    { name: "SÄÄ", words: ["sade", "lumi", "tuuli", "pouta"] },
-    { name: "KOULU", words: ["kynä", "vihko", "reppu", "kumi"] },
-  ],
-};
+/* =========================
+   KONFIGURAATIO (const)
+========================= */
+const DEFAULT_ROUNDS = 3;
+const HINT_PENALTY = 20;
+const HINTS_PER_ROUND = 2;
+
+/* =========================
+   SANALISTA / PUZZLE POOL
+========================= */
+
+const PUZZLE_POOL = [
+  {
+    groups: [
+      { name: "ELÄIMET", words: ["kissa", "koira", "lehmä", "hevonen"] },
+      { name: "VÄRIT", words: ["punainen", "sininen", "vihreä", "keltainen"] },
+      { name: "SÄÄ", words: ["sade", "lumi", "tuuli", "pouta"] },
+      { name: "KOULU", words: ["kynä", "vihko", "reppu", "kumi"] },
+    ],
+  },
+];
+let PUZZLE = { groups: [] };
 
 let allWords = [];
 let selected = new Set();
 let solvedGroups = new Set();
-let hintsLeft = 2;
+let hintsLeft = HINTS_PER_ROUND;
 let hintsUsed = 0;
 
 let gameStarted = false;
 let startTime = 0;
 let timerInterval = null;
+
+let totalRounds = 3; // Opettaja määrittää
+let currentRound = 1;
+
+let roundScore = 0;
+let totalScore = 0;
+
+let shuffledPuzzles = [];
 
 /* -------------------- Utility -------------------- */
 
@@ -35,6 +57,97 @@ function shuffle(a) {
 function setStatus(text) {
   document.getElementById("status").textContent = text;
 }
+/* =========================
+   GAME FLOW (Turnaus)
+========================= */
+function startGame() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) {
+    setStatus("Syötä nimesi ennen pelin aloittamista.");
+    return;
+  }
+
+  gameStarted = true;
+
+  totalRounds =
+    Number(document.getElementById("roundCount").value) || DEFAULT_ROUNDS;
+
+  currentRound = 1;
+  totalScore = 0;
+
+  // 🔹 ESTÄÄ TOISTON
+  shuffledPuzzles = shuffle([...PUZZLE_POOL]);
+
+  if (totalRounds > shuffledPuzzles.length) {
+    totalRounds = shuffledPuzzles.length;
+  }
+
+  startRound();
+}
+
+function startRound() {
+  loadRandomPuzzle();
+
+  selected.clear();
+  solvedGroups.clear();
+  hintsLeft = HINTS_PER_ROUND;
+  hintsUsed = 0;
+  startTime = Date.now();
+
+  buildBoard();
+  render();
+
+  setStatus(`Erä ${currentRound} / ${totalRounds}`);
+}
+function loadRandomPuzzle() {
+  const puzzle = shuffledPuzzles[currentRound - 1];
+
+  if (!puzzle) {
+    setStatus("Ei tarpeeksi sanasettejä.");
+    return;
+  }
+
+  PUZZLE.groups = puzzle.groups;
+}
+
+function showBreakScreen() {
+  document.getElementById("grid").innerHTML = `<div class="break-screen">
+      <h2>Erä valmis</h2>
+      <p>Kokonaispisteet: ${totalScore}</p>
+      <button onclick="startRound()">Seuraava erä</button>
+    </div>`;
+}
+
+function endGame() {
+  const timeUsed = Math.floor((Date.now() - startTime) / 1000);
+  const score = timeUsed + hintsUsed * 20;
+
+  roundScore = score;
+  totalScore += roundScore;
+
+  setStatus(
+    `Erä ${currentRound} valmis!
+     Eräpisteet: ${roundScore}
+     Kokonaispisteet: ${totalScore}`,
+  );
+
+  if (currentRound >= totalRounds) {
+    endTournament();
+  } else {
+    currentRound++;
+    showBreakScreen();
+  }
+}
+function endTournament() {
+  tournamentActive = false;
+
+  setStatus(
+    `Turnaus päättyi!
+     Kokonaispisteet: ${totalScore}`,
+  );
+
+  saveResult(totalScore, totalScore);
+}
 
 /* -------------------- Game Setup -------------------- */
 
@@ -45,33 +158,11 @@ function buildBoard() {
 function resetGame() {
   selected.clear();
   solvedGroups.clear();
-  hintsLeft = 2;
+  hintsLeft = HINTS_PER_ROUND;
   hintsUsed = 0;
 
   buildBoard();
   render();
-}
-
-function startGame() {
-  const name = document.getElementById("playerName").value.trim();
-
-  if (!name) {
-    setStatus("Syötä nimesi ennen pelin aloittamista.");
-    return;
-  }
-
-  gameStarted = true;
-  startTime = Date.now();
-
-  if (timerInterval) clearInterval(timerInterval);
-
-  timerInterval = setInterval(() => {
-    const seconds = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById("time").textContent = seconds;
-  }, 1000);
-
-  resetGame();
-  setStatus("Peli käynnissä. Onnea!");
 }
 
 /* -------------------- Rendering -------------------- */
@@ -188,21 +279,6 @@ function giveHint() {
 
   setStatus("Kaksi sanaa paljastettu.");
   render();
-}
-
-/* -------------------- End Game -------------------- */
-
-function endGame() {
-  clearInterval(timerInterval);
-
-  const timeUsed = Math.floor((Date.now() - startTime) / 1000);
-  const score = timeUsed + hintsUsed * 20;
-
-  setStatus(
-    `Valmis! Aika: ${timeUsed}s | Vihjeet: ${hintsUsed} | Pisteet: ${score}`,
-  );
-
-  saveResult(score, timeUsed);
 }
 
 /* -------------------- Save Result (No CORS) -------------------- */
