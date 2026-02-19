@@ -1,9 +1,7 @@
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyurfZtIZBHsZw3hBmmwEHoxItINPs42spQgDPj0Povq4lwYjP1FQihv4sX2xKDbq8pcQ/exec";
-const GAME_ID = "kilpailu1";
+  "https://script.google.com/macros/s/AKfycbyNnQJe42-Bg4hYZMW7QyLoe6f8lWiGQP8qjbdcUF1PWl3TABpL4ZhE_R2o-HT34gKAfg/exec";
 
-let gameStarted = false;
-let timerInterval = null;
+const GAME_ID = "kilpailu1";
 
 const PUZZLE = {
   groups: [
@@ -14,32 +12,17 @@ const PUZZLE = {
   ],
 };
 
-function startGame() {
-  const name = document.getElementById("playerName").value.trim();
-  if (!name) {
-    setStatus("Syötä nimesi ennen pelin aloittamista.");
-    return;
-  }
-
-  gameStarted = true;
-  startTime = Date.now();
-
-  // käynnistä ajastin
-  timerInterval = setInterval(() => {
-    const seconds = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById("time").textContent = seconds;
-  }, 1000);
-
-  setStatus("Peli käynnissä. Onnea!");
-  resetGame();
-}
-
 let allWords = [];
 let selected = new Set();
 let solvedGroups = new Set();
 let hintsLeft = 2;
-let startTime = 0;
 let hintsUsed = 0;
+
+let gameStarted = false;
+let startTime = 0;
+let timerInterval = null;
+
+/* -------------------- Utility -------------------- */
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) {
@@ -49,9 +32,49 @@ function shuffle(a) {
   return a;
 }
 
+function setStatus(text) {
+  document.getElementById("status").textContent = text;
+}
+
+/* -------------------- Game Setup -------------------- */
+
 function buildBoard() {
   allWords = shuffle(PUZZLE.groups.flatMap((g) => g.words));
 }
+
+function resetGame() {
+  selected.clear();
+  solvedGroups.clear();
+  hintsLeft = 2;
+  hintsUsed = 0;
+
+  buildBoard();
+  render();
+}
+
+function startGame() {
+  const name = document.getElementById("playerName").value.trim();
+
+  if (!name) {
+    setStatus("Syötä nimesi ennen pelin aloittamista.");
+    return;
+  }
+
+  gameStarted = true;
+  startTime = Date.now();
+
+  if (timerInterval) clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById("time").textContent = seconds;
+  }, 1000);
+
+  resetGame();
+  setStatus("Peli käynnissä. Onnea!");
+}
+
+/* -------------------- Rendering -------------------- */
 
 function render() {
   document.getElementById("hints").textContent = hintsLeft;
@@ -85,6 +108,11 @@ function render() {
     tile.textContent = word;
 
     tile.onclick = () => {
+      if (!gameStarted) {
+        setStatus("Kirjaudu ensin peliin.");
+        return;
+      }
+
       if (selected.has(word)) selected.delete(word);
       else if (selected.size < 4) selected.add(word);
 
@@ -94,6 +122,8 @@ function render() {
     grid.appendChild(tile);
   });
 }
+
+/* -------------------- Game Logic -------------------- */
 
 function checkSelection() {
   if (!gameStarted) {
@@ -121,8 +151,8 @@ function checkSelection() {
       endGame();
     }
   } else {
-    setStatus("Väärä ryhmä.");
     selected.clear();
+    setStatus("Väärä ryhmä.");
   }
 
   render();
@@ -160,6 +190,8 @@ function giveHint() {
   render();
 }
 
+/* -------------------- End Game -------------------- */
+
 function endGame() {
   clearInterval(timerInterval);
 
@@ -173,20 +205,11 @@ function endGame() {
   saveResult(score, timeUsed);
 }
 
+/* -------------------- Save Result (No CORS) -------------------- */
+
 function saveResult(score, timeUsed) {
   const name = document.getElementById("playerName").value.trim();
-  if (!name) {
-    setStatus("Syötä nimi ennen tuloksen tallennusta.");
-    return;
-  }
-
-  // Jos saveResultia kutsutaan ilman parametreja, laske ne tässä
-  if (typeof timeUsed !== "number" || Number.isNaN(timeUsed)) {
-    timeUsed = Math.floor((Date.now() - startTime) / 1000);
-  }
-  if (typeof score !== "number" || Number.isNaN(score)) {
-    score = timeUsed + hintsUsed * 20;
-  }
+  if (!name) return;
 
   const url =
     WEBAPP_URL +
@@ -200,20 +223,12 @@ function saveResult(score, timeUsed) {
     "&score=" +
     encodeURIComponent(score);
 
-  // Beacon-tyylinen lähetys (CORS ei blokkaa)
   const img = new Image();
-  img.onload = () => {
-    setStatus("Tulos lähetetty!");
-    loadLeaderboard();
-  };
-  img.onerror = () => {
-    // Tallennus voi silti mennä perille vaikka onerror laukeaa,
-    // mutta ilmoitetaan varmuuden vuoksi.
-    setStatus("Tulos lähetetty (tarkista leaderboard).");
-    loadLeaderboard();
-  };
-  img.src = url + "&_=" + Date.now(); // cache-buster
+  img.onload = () => loadLeaderboard();
+  img.src = url + "&_=" + Date.now();
 }
+
+/* -------------------- Leaderboard (JSONP) -------------------- */
 
 function loadLeaderboard() {
   const cbName = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
@@ -221,9 +236,15 @@ function loadLeaderboard() {
   window[cbName] = function (data) {
     try {
       let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+
       data.forEach((r, i) => {
-        html += `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.score}</td></tr>`;
+        html += `<tr>
+          <td>${i + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.score}</td>
+        </tr>`;
       });
+
       html += "</table>";
       document.getElementById("resultsArea").innerHTML = html;
     } finally {
@@ -234,28 +255,9 @@ function loadLeaderboard() {
 
   const script = document.createElement("script");
   script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
-  script.onerror = () => {
-    setStatus("Leaderboard ei latautunut (verkko tai URL).");
-    delete window[cbName];
-    script.remove();
-  };
   document.body.appendChild(script);
 }
 
-function setStatus(text) {
-  document.getElementById("status").textContent = text;
-}
+/* -------------------- Initial Load -------------------- */
 
-function resetGame() {
-  startTime = Date.now();
-  hintsLeft = 2;
-  hintsUsed = 0;
-  selected.clear();
-  solvedGroups.clear();
-  buildBoard();
-  setStatus("");
-  render();
-}
-
-resetGame();
 loadLeaderboard();
