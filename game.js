@@ -317,7 +317,7 @@ function loadLeaderboard() {
 
   window[cbName] = function (data) {
     try {
-      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Pisteet</th></tr>";
+      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Aika</th></tr>";
 
       data.forEach((r, i) => {
         html += `
