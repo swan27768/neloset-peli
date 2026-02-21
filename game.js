@@ -337,10 +337,8 @@ function loadLeaderboard() {
   };
 
   script.src = WEBAPP_URL + "?callback=" + cbName + "&_=" + Date.now();
-
   document.body.appendChild(script);
 }
-
 /* =========================
    RESET
 ========================= */
@@ -359,20 +357,6 @@ function resetGame() {
   setStatus("Peli nollattu.");
   document.getElementById("grid").innerHTML = "";
 }
-function startLeaderboardAutoRefresh() {
-  if (leaderboardInterval) return;
-
-  leaderboardInterval = setInterval(() => {
-    loadLeaderboard();
-  }, LEADERBOARD_REFRESH_MS);
-}
-
-function stopLeaderboardAutoRefresh() {
-  if (leaderboardInterval) {
-    clearInterval(leaderboardInterval);
-    leaderboardInterval = null;
-  }
-}
 
 /* =========================
    INIT
@@ -382,8 +366,4 @@ function stopLeaderboardAutoRefresh() {
 loadLeaderboard();
 
 // Päivitä 5 sek välein
-setInterval(() => {
-  if (!tournamentActive) {
-    loadLeaderboard();
-  }
-}, 5000);
+setInterval(loadLeaderboard, 5000);
