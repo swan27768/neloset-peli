@@ -3,7 +3,7 @@
 ========================= */
 
 const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbwrl67SkJfAxjphY9F1-U5f5TV-f2wm6De4i5j46FZtMKieP-HB4HAZPkNJnqdGzCSu3A/exec";
+  "https://script.google.com/macros/s/AKfycbyGNzVrPPcfSr5tVI6QfVXQ8g05EaVs7GzFZFmAre0lgxXpJtg8eVGPhquCiUUJQuApZQ/exec";
 
 const GAME_ID = "kilpailu1";
 
