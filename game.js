@@ -83,10 +83,34 @@ function loadPuzzlesFromSheet(callback) {
   const script = document.createElement("script");
 
   window[cbName] = function (data) {
-    PUZZLE_POOL = data;
     delete window[cbName];
     script.remove();
+
+    // 🔴 Tarkistus 1: pitää olla array
+    if (!Array.isArray(data)) {
+      console.error("Virheellinen puzzles-data:", data);
+      setStatus("Sanasettien lataus epäonnistui.");
+      return;
+    }
+
+    const valid = data.every((p) => p && Array.isArray(p.groups));
+
+    if (!valid) {
+      console.error("Sanasettien rakenne virheellinen:", data);
+      setStatus("Sanasettien rakenne virheellinen.");
+      return;
+    }
+
+    PUZZLE_POOL = data;
+
     if (callback) callback();
+  };
+
+  script.onerror = function () {
+    delete window[cbName];
+    script.remove();
+    console.error("Puzzle JSONP lataus epäonnistui.");
+    setStatus("Sanasettien lataus epäonnistui.");
   };
 
   script.src =
@@ -102,8 +126,8 @@ function loadPuzzlesFromSheet(callback) {
 function startRound() {
   const puzzle = shuffledPuzzles[currentRound - 1];
 
-  if (!puzzle) {
-    setStatus("Ei sanasettejä.");
+  if (!puzzle || !Array.isArray(puzzle.groups)) {
+    setStatus("Sanasetti virheellinen.");
     return;
   }
 
@@ -361,9 +385,5 @@ function resetGame() {
 /* =========================
    INIT
 ========================= */
-
-// Lataa heti
 loadLeaderboard();
-
-// Päivitä 5 sek välein
 setInterval(loadLeaderboard, 5000);
