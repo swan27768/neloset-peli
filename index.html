@@ -49,9 +49,20 @@
 
       <!-- CONTROLS -->
       <div class="controls">
-        <button class="primary" onclick="checkSelection()">Tarkista</button>
-        <button onclick="giveHint()">Vihje</button>
-        <button class="bad" onclick="resetGame()">Uusi peli</button>
+        <button
+          id="checkBtn"
+          class="primary"
+          onclick="checkSelection()"
+          disabled
+        >
+          Tarkista
+        </button>
+
+        <button id="hintBtn" onclick="giveHint()" disabled>Vihje</button>
+
+        <button id="resetBtn" class="bad" onclick="resetGame()">
+          Uusi peli
+        </button>
       </div>
 
       <!-- LEADERBOARD -->

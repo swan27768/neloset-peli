@@ -112,3 +112,8 @@ th {
   border-radius: 10px;
   font-weight: bold;
 }
+.login-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}

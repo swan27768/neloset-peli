@@ -39,6 +39,8 @@ let totalScore = 0;
 let startTime = 0;
 
 let shuffledPuzzles = [];
+let timerInterval = null;
+let tournamentActive = false;
 
 /* =========================
    UTIL
@@ -58,14 +60,19 @@ function setStatus(text) {
 
 function startGame() {
   const name = document.getElementById("playerName").value.trim();
+
   if (!name) {
     setStatus("Syötä nimesi ennen pelin aloittamista.");
     return;
   }
 
   gameStarted = true;
+  tournamentActive = true;
   currentRound = 1;
   totalScore = 0;
+
+  document.getElementById("checkBtn").disabled = false;
+  document.getElementById("hintBtn").disabled = false;
 
   loadPuzzlesFromSheet(() => {
     if (!PUZZLE_POOL.length) {
@@ -142,6 +149,12 @@ function startRound() {
 
   buildBoard();
   render();
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById("time").textContent = seconds;
+  }, 1000);
 
   setStatus(`Erä ${currentRound} / ${shuffledPuzzles.length}`);
 }
@@ -241,6 +254,7 @@ function checkSelection() {
 ========================= */
 
 function endRound() {
+  clearInterval(timerInterval);
   const timeUsed = Math.floor((Date.now() - startTime) / 1000);
   const score = timeUsed + hintsUsed * HINT_PENALTY;
 
@@ -341,14 +355,14 @@ function loadLeaderboard() {
 
   window[cbName] = function (data) {
     try {
-      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Aika</th></tr>";
+      let html = "<table><tr><th>Sija</th><th>Nimi</th><th>Aika (s)</th></tr>";
 
       data.forEach((r, i) => {
         html += `
           <tr>
             <td>${i + 1}</td>
             <td>${r.name}</td>
-            <td>${r.score}</td>
+            <td>${r.timeSeconds ?? r.score}</td>
           </tr>`;
       });
 
@@ -368,6 +382,8 @@ function loadLeaderboard() {
 ========================= */
 
 function resetGame() {
+  clearInterval(timerInterval);
+  document.getElementById("time").textContent = "0";
   gameStarted = false;
   currentRound = 1;
   totalScore = 0;
@@ -379,11 +395,14 @@ function resetGame() {
   hintsUsed = 0;
 
   setStatus("Peli nollattu.");
+
   document.getElementById("grid").innerHTML = "";
+  document.getElementById("checkBtn").disabled = true;
+  document.getElementById("hintBtn").disabled = true;
 }
 
 /* =========================
    INIT
 ========================= */
 loadLeaderboard();
-setInterval(loadLeaderboard, 5000);
+setInterval(loadLeaderboard, LEADERBOARD_REFRESH_MS);
